@@ -109,6 +109,8 @@ const loginUser = asyncHandler(async (req, res) => {
         $or: [{ email }, { username }]
     });
 
+    console.log(user)
+
     // 4. --- FIX 2: Security (Username Enumeration) ---
     // Check if user exists AND password is valid using generic errors.
     if (!user) {
@@ -120,6 +122,8 @@ const loginUser = asyncHandler(async (req, res) => {
     if (!isPasswordValid) {
         throw new ApiError(401, "Invalid username or password"); // <-- Same generic error
     }
+
+    console.log(isPasswordValid)
 
     // 5. Generate tokens
     const { refreshToken, accessToken } = await generateAccessAndRefreshToken(user._id);
@@ -154,7 +158,8 @@ const logoutUser = asyncHandler(async (req, res) => {
   // Remove refreshToken from DB
   await User.findByIdAndUpdate(
     req.user._id,
-    { $set: { refreshToken: null } },
+    { 
+        $unset: { refreshToken: 1 } },
     { new: true }
   );
 
@@ -194,16 +199,19 @@ const refreshAccessToken = asyncHandler(async  (req,res)=>{
             secure : true
         }
     
-        const {newRefreshToken,accessToken} = await generateAccessAndRefreshToken(user._id)
+        const {refreshToken, accessToken} = await generateAccessAndRefreshToken(user._id)
+
+        console.log(`RefreshToken: ${refreshToken} , AccessToken: ${accessToken}`)
+
     
         res
         .status(200)
         .cookie("accessToken",accessToken,options)
-        .cookie("refreshToken",newRefreshToken,options)
+        .cookie("refreshToken",refreshToken,options)
         .json(
             new ApiResponse(
                 200,
-                {accessToken,newRefreshToken},
+                {accessToken,refreshToken},
                 "Access token refresh"
             )
         )
